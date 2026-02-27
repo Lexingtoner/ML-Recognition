@@ -1,22 +1,10 @@
 package com.pdm.ml_face_detection.presentation
 
-
+import androidx.camera.core.CameraSelector
 import androidx.compose.foundation.Image
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
-import androidx.compose.material3.Button
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Text
+import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -31,40 +19,37 @@ import com.google.accompanist.permissions.shouldShowRationale
 import com.pdm.ml_face_detection.R
 import com.pdm.ml_face_detection.domain.models.FaceResult
 import com.pdm.ml_face_detection.presentation.components.CameraPreview
-import java.util.jar.Manifest
+import java.com.pdm.ml_face_detection.presentation.components.FaceResultOverlay
 
 @OptIn(ExperimentalPermissionsApi::class)
 @Composable
 fun MainScreen(viewModel: MainViewModel) {
-
     val cameraPermissionState = rememberPermissionState(permission = android.Manifest.permission.CAMERA)
 
     if (cameraPermissionState.status.isGranted) {
-        MainScreenContent(viewModel.uiState.value, {
-            viewModel.rotateCamera()
-        }) {
-            viewModel.updateFaceDetection(it)
-        }
+        MainScreenContent(
+            state = viewModel.uiState.value,
+            onRotateCamera = { viewModel.rotateCamera() },
+            onResult = { viewModel.updateFaceDetection(it) }
+        )
     } else {
         Column(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalAlignment = Alignment.CenterHorizontally
+            modifier = Modifier.fillMaxSize().padding(24.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.Center
         ) {
             val textToShow = if (cameraPermissionState.status.shouldShowRationale) {
-                // If the user has denied the permission but the rationale can be shown,
-                // then gently explain why the app requires this permission
-                "The camera is important for this app. Please grant the permission."
+                "Камера необходима для работы приложения. Пожалуйста, разрешите доступ."
             } else {
-                // If it's the first time the user lands on this feature, or the user
-                // doesn't want to be asked again for this permission, explain that the
-                // permission is required
-                "Camera permission required for this feature to be available. " +
-                        "Please grant the permission"
+                "Для работы функций детекции лиц требуется разрешение на использование камеры."
             }
-            Text(textToShow, style = MaterialTheme.typography.headlineLarge)
-            Spacer(modifier = Modifier.width(20.dp))
+            Text(
+                text = textToShow,
+                style = MaterialTheme.typography.headlineSmall,
+                modifier = Modifier.padding(bottom = 16.dp)
+            )
             Button(onClick = { cameraPermissionState.launchPermissionRequest() }) {
-                Text("Request permission")
+                Text("Разрешить")
             }
         }
     }
@@ -76,48 +61,71 @@ fun MainScreenContent(
     onRotateCamera: () -> Unit,
     onResult: (FaceResult) -> Unit
 ) {
-    Box(
-        modifier = Modifier
-            .fillMaxSize()
-    ) {
+    Box(modifier = Modifier.fillMaxSize()) {
+        // 1. Предпросмотр камеры
         CameraPreview(Modifier.fillMaxSize(), state.camera) {
             onResult(it)
         }
+
+        // 2. Рамка вокруг лица (Overlay)
+        FaceResultOverlay(
+            modifier = Modifier.fillMaxSize(),
+            faceResult = state.faceResult,
+            isBackCamera = state.camera == CameraSelector.LENS_FACING_BACK
+        )
+
+        // 3. Маска на экране
         Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(horizontal = 40.dp),
+            modifier = Modifier.fillMaxSize().padding(horizontal = 40.dp),
             contentAlignment = Alignment.Center
         ) {
             Image(
                 modifier = Modifier.fillMaxSize(),
                 painter = painterResource(id = R.drawable.ellipse_face),
-                contentDescription = null
+                contentDescription = null,
+                alpha = 0.4f
             )
         }
 
+        // 4. Интерфейс управления и индикаторы
         Column(
             modifier = Modifier.fillMaxSize(),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            Text(
-                text = if (state.faceResult.faceVisible) "" else "NO FACE",
-                color = Color.White,
-                style = MaterialTheme.typography.headlineLarge,
-                modifier = Modifier.weight(8f)
-            )
+            // Индикаторы состояния лица
+            FaceStatusIndicators(state.faceResult)
+
+            Spacer(modifier = Modifier.weight(1f))
+
+            if (!state.faceResult.faceVisible) {
+                Surface(
+                    color = Color.Black.copy(alpha = 0.5f),
+                    shape = CircleShape,
+                    modifier = Modifier.padding(bottom = 16.dp)
+                ) {
+                    Text(
+                        text = "ЛИЦО НЕ НАЙДЕНО",
+                        color = Color.White,
+                        style = MaterialTheme.typography.titleMedium,
+                        modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
+                    )
+                }
+            }
+
+            // Кнопка поворота
             Row(
-                modifier = Modifier
-                    .weight(1f)
-                    .padding(16.dp),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.Absolute.Right
+                modifier = Modifier.fillMaxWidth().padding(24.dp),
+                horizontalArrangement = Arrangement.End,
+                verticalAlignment = Alignment.CenterVertically
             ) {
-                IconButton(onClick = { onRotateCamera() }) {
+                IconButton(
+                    onClick = { onRotateCamera() },
+                    colors = IconButtonDefaults.iconButtonColors(containerColor = Color.Black.copy(alpha = 0.3f))
+                ) {
                     Icon(
-                        modifier = Modifier.size(48.dp),
+                        modifier = Modifier.size(32.dp),
                         painter = painterResource(id = R.drawable.baseline_cameraswitch_24),
-                        contentDescription = "",
+                        contentDescription = "Rotate",
                         tint = Color.White
                     )
                 }
@@ -126,8 +134,35 @@ fun MainScreenContent(
     }
 }
 
-@Preview
+@Composable
+fun FaceStatusIndicators(result: FaceResult) {
+    Row(
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+        modifier = Modifier.padding(top = 40.dp)
+    ) {
+        StatusBadge(label = "😊", isActive = result.faceNeutralExpression)
+        StatusBadge(label = "👁️ L", isActive = result.leftEyeOpen)
+        StatusBadge(label = "👁️ R", isActive = result.rightEyeOpen)
+    }
+}
+
+@Composable
+fun StatusBadge(label: String, isActive: Boolean) {
+    Surface(
+        shape = CircleShape,
+        color = (if (isActive) Color.Green else Color.Red).copy(alpha = 0.7f),
+        contentColor = Color.White
+    ) {
+        Text(
+            text = label,
+            modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
+            style = MaterialTheme.typography.bodyLarge
+        )
+    }
+}
+
+@Preview(showBackground = true)
 @Composable
 fun ContentPreview() {
-    MainScreenContent(state = UIState(), onRotateCamera = { /*TODO*/ }, onResult = {})
+    MainScreenContent(state = UIState(), onRotateCamera = {}, onResult = {})
 }

@@ -1,4 +1,4 @@
-package java.com.pdm.ml_face_detection.presentation.components
+package com.pdm.ml_face_detection.presentation.components
 
 import androidx.compose.foundation.Canvas
 import androidx.compose.runtime.Composable
@@ -16,27 +16,27 @@ fun FaceResultOverlay(
     isBackCamera: Boolean
 ) {
     Canvas(modifier = modifier) {
-        // Масштабируем координаты рамки из размеров изображения в размеры Canvas
+        if (faceResult.imageWidth <= 0 || faceResult.imageHeight <= 0) return@Canvas
+
         val scaleX = size.width / faceResult.imageWidth.toFloat()
         val scaleY = size.height / faceResult.imageHeight.toFloat()
 
         faceResult.faces.forEach { face ->
             val boundingBox = face.bounds
 
-            // Зеркалим рамку по горизонтали, если используется задняя камера
-            val correctedLeft = if (isBackCamera) {
+            val correctedLeft = if (!isBackCamera) {
                 size.width - (boundingBox.right * scaleX)
             } else {
                 boundingBox.left * scaleX
             }
-            val correctedRight = if (isBackCamera) {
+            val correctedRight = if (!isBackCamera) {
                 size.width - (boundingBox.left * scaleX)
             } else {
                 boundingBox.right * scaleX
             }
 
             drawRect(
-                color = Color.Red,
+                color = if (faceResult.requirementsMeet) Color.Green else Color.Red,
                 topLeft = Offset(
                     x = correctedLeft,
                     y = boundingBox.top * scaleY
@@ -45,7 +45,7 @@ fun FaceResultOverlay(
                     width = correctedRight - correctedLeft,
                     height = (boundingBox.bottom - boundingBox.top) * scaleY
                 ),
-                style = Stroke(width = 2f)
+                style = Stroke(width = 4f)
             )
         }
     }

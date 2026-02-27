@@ -11,6 +11,7 @@ import com.google.mlkit.vision.face.FaceDetectorOptions
 import com.pdm.ml_face_detection.domain.FaceDetectorProcessor
 import com.pdm.ml_face_detection.domain.models.FaceResult
 
+@Suppress("OPT_IN_ARGUMENT_IS_NOT_MARKER")
 class MLKitFaceDetectorProcessor : FaceDetectorProcessor {
 
     private val detector: FaceDetector
@@ -35,13 +36,19 @@ class MLKitFaceDetectorProcessor : FaceDetectorProcessor {
     ) {
         val mediaImage = image.image
         if (mediaImage != null) {
-            val inputImage = InputImage.fromMediaImage(mediaImage, image.imageInfo.rotationDegrees)
+            val rotationDegrees = image.imageInfo.rotationDegrees
+            val inputImage = InputImage.fromMediaImage(mediaImage, rotationDegrees)
+            
+            // Определяем размеры с учетом поворота для корректного маппинга координат
+            val width = if (rotationDegrees % 180 == 0) image.width else image.height
+            val height = if (rotationDegrees % 180 == 0) image.height else image.width
+
             detectInImage(inputImage)
                 .addOnSuccessListener { faces ->
                     if (faces.isEmpty()) {
-                        onSuccess(FaceResult(faceVisible = false))
+                        onSuccess(FaceResult(faceVisible = false, imageWidth = width, imageHeight = height))
                     } else {
-                        onSuccess(getFaceResults(faces[0]))
+                        onSuccess(getFaceResults(faces, width, height))
                     }
                 }
                 .addOnFailureListener {
@@ -59,8 +66,14 @@ class MLKitFaceDetectorProcessor : FaceDetectorProcessor {
         return detector.process(image)
     }
 
-    private fun getFaceResults(face: Face): FaceResult {
-        var faceResult = FaceResult(faceVisible = true)
+    private fun getFaceResults(faces: List<Face>, width: Int, height: Int): FaceResult {
+        val face = faces[0]
+        var faceResult = FaceResult(
+            faceVisible = true,
+            faces = face as List<android.hardware.camera2.params.Face>,
+            imageWidth = width,
+            imageHeight = height
+        )
         
         face.smilingProbability?.let {
             faceResult = faceResult.copy(faceNeutralExpression = it <= 0.2f)
@@ -71,13 +84,6 @@ class MLKitFaceDetectorProcessor : FaceDetectorProcessor {
         }
         face.rightEyeOpenProbability?.let {
             faceResult = faceResult.copy(rightEyeOpen = it >= 0.6f)
-        }
-        
-        face.headEulerAngleY.let {
-            when {
-                it < -5.5f -> { /* повернута влево */ }
-                it > 5.5f -> { /* повернута вправо */ }
-            }
         }
         
         return faceResult
