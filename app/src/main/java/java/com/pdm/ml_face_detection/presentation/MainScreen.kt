@@ -19,6 +19,7 @@ import com.google.accompanist.permissions.shouldShowRationale
 import com.pdm.ml_face_detection.R
 import com.pdm.ml_face_detection.domain.models.FaceResult
 import com.pdm.ml_face_detection.presentation.components.CameraPreview
+import com.pdm.ml_face_detection.presentation.components.FaceResultOverlay
 import java.com.pdm.ml_face_detection.presentation.components.FaceResultOverlay
 
 @OptIn(ExperimentalPermissionsApi::class)
