@@ -9,6 +9,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.drawscope.Stroke
 import com.pdm.ml_face_detection.domain.models.FaceResult
 
+@Supressed("OPT_IN_IS_NOT_ENABLED")
 @Composable
 fun FaceResultOverlay(
     modifier: Modifier = Modifier,
