@@ -17,6 +17,7 @@ fun FaceResultOverlay(
     isBackCamera: Boolean
 ) {
     Canvas(modifier = modifier) {
+
         if (faceResult.imageWidth <= 0 || faceResult.imageHeight <= 0) return@Canvas
 
         val scaleX = size.width / faceResult.imageWidth.toFloat()
