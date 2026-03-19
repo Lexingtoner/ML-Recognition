@@ -1,10 +1,5 @@
 # MLRecognition — Детекция лиц на Android
 
-![Android](https://img.shields.io)
-![Kotlin](https://img.shields.io)
-![ML Kit](https://img.shields.io)
-![License](https://img.shields.io)
-
 Приложение для Android, демонстрирующее возможности распознавания лиц в реальном времени с использованием **Google ML Kit** и **Jetpack Compose**.
 
 ---
